@@ -1,0 +1,91 @@
+[
+  {"id": 1, "type": "basic",
+   "task": "创建 out.docx，写一段约 50 字描写春天的文字",
+   "check": {"file": "out.docx", "file_exists": true, "min_text_len": 30}},
+
+  {"id": 2, "type": "basic",
+   "task": "创建 out.docx，标题为'月度总结'，正文写三条本月工作要点",
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["月度总结"]}},
+
+  {"id": 3, "type": "basic",
+ "task": "查询员工张三的邮箱地址，创建 out.docx，写入一行：张三的邮箱是（查到的地址）",
+ "check": {"file": "out.docx", "contains": ["zhang@corp.com"]}},
+
+  {"id": 4, "type": "basic",
+   "task": "创建 out.xlsx，Sheet1 的 A1 写'姓名'、B1 写'分数'，再写两行学生数据",
+   "check": {"file": "out.xlsx", "file_exists": true, "contains": ["姓名", "分数"]}},
+
+  {"id": 5, "type": "basic",
+   "task": "创建 out.pptx，加一页幻灯片，标题为'项目汇报'",
+   "check": {"file": "out.pptx", "file_exists": true, "contains": ["项目汇报"]}},
+
+  {"id": 6, "type": "basic",
+   "task": "创建 out.docx，写一首四句的短诗，主题任选",
+   "check": {"file": "out.docx", "file_exists": true, "min_text_len": 20}},
+
+  {"id": 7, "type": "basic",
+   "task": "创建 out.docx，标题'周报'，正文中包含日期占位符 {{date}}",
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["周报", "{{date}}"]}},
+
+  {"id": 8, "type": "basic",
+   "task": "创建 out.docx，写一份购物清单，必须包含'牛奶'和'鸡蛋'",
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["牛奶", "鸡蛋"]}},
+
+  {"id": 9, "type": "advanced",
+   "task": "创建 out.docx，先写一段含'AI'的文字，然后把文中所有'AI'替换为'人工智能'",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["人工智能"], "not_contains": ["AI"]}},
+
+  {"id": 10, "type": "advanced",
+   "task": "创建 out.docx，依次写入'第一行''第二行''第三行'三段文字，然后删除'第二行'那一段",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["第一行", "第三行"], "not_contains": ["第二行"]}},
+
+  {"id": 11, "type": "advanced",
+   "task": "创建 out.docx，插入一个 3 行 2 列的表格，表头为'指标'和'数值'",
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["指标", "数值"]}},
+
+  {"id": 12, "type": "advanced",
+   "task": "创建 a.docx 写入一句自我介绍，再创建 b.docx 写入一句今天的心情",
+   "check": {"file": "a.docx", "file_exists": true, "min_text_len": 5,
+             "extra_files": ["b.docx"]}},
+
+  {"id": 13, "type": "advanced",
+   "task": "创建 out.docx，标题先写'初稿'，正文随便写一句，然后把标题改成'终稿'",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["终稿"], "not_contains": ["初稿"]}},
+
+  {"id": 14, "type": "advanced",
+   "task": "读取 data.xlsx 的 Sheet1，把里面所有产品名称逐个写进 out.docx",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["苹果", "香蕉"]}},
+
+  {"id": 15, "type": "complex",
+   "task": "读取 data.xlsx 的 Sheet1，计算销量列的总和，把结果写进 out.docx",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["205"]}},
+
+  {"id": 16, "type": "complex",
+   "task": "读取 data.xlsx 的 Sheet1，计算销量的平均值写进 out.docx，并附一句结论",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["结论"]}},
+
+  {"id": 17, "type": "complex",
+   "task": "读取 data.xlsx 的 Sheet1，找出销量最高的产品，把产品名和销量写进 out.docx",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["苹果", "120"]}},
+
+  {"id": 18, "type": "complex",
+   "task": "读取 data.xlsx 的 Sheet1，计算两个产品销量的差值，把差值写进 out.docx 并说明哪个更高",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["35", "苹果"]}},
+
+  {"id": 19, "type": "cross-server",
+   "task": "查一下张三的邮箱，把联系方式写进 out.docx",
+   "check": {"file": "out.docx", "file_exists": true, "contains": ["zhang@corp.com"]}},
+
+  {"id": 20, "type": "cross-server",
+   "task": "查一下张三和李四的邮箱，把两人的联系方式分两行写进 out.docx",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["zhang@corp.com", "li@corp.com"]}}
+]

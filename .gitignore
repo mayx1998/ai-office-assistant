@@ -1,0 +1,11 @@
+.venv/
+mcp/
+__pycache__/
+*.pyc
+.env
+traces.db
+eval/sandbox/
+eval/logs/
+outputs/
+demo.docx
+out.docx

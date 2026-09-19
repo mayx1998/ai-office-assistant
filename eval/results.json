@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "type": "multi-constraint",
+    "success_rate": 1.0,
+    "avg_retries": 2.6666666666666665,
+    "avg_duration": 181.6
+  },
+  {
+    "id": 2,
+    "type": "data-chain",
+    "success_rate": 1.0,
+    "avg_retries": 0.0,
+    "avg_duration": 46.0
+  },
+  {
+    "id": 3,
+    "type": "condition",
+    "success_rate": 0.6666666666666666,
+    "avg_retries": 2.0,
+    "avg_duration": 93.9
+  },
+  {
+    "id": 4,
+    "type": "data-chain",
+    "success_rate": 1.0,
+    "avg_retries": 2.0,
+    "avg_duration": 129.2
+  },
+  {
+    "id": 5,
+    "type": "cross-server",
+    "success_rate": 1.0,
+    "avg_retries": 0.0,
+    "avg_duration": 25.5
+  },
+  {
+    "id": 6,
+    "type": "edit-chain",
+    "success_rate": 1.0,
+    "avg_retries": 0.0,
+    "avg_duration": 29.9
+  },
+  {
+    "id": 7,
+    "type": "multi-constraint",
+    "success_rate": 1.0,
+    "avg_retries": 0.6666666666666666,
+    "avg_duration": 77.2
+  },
+  {
+    "id": 8,
+    "type": "multi-constraint",
+    "success_rate": 1.0,
+    "avg_retries": 2.0,
+    "avg_duration": 207.7
+  },
+  {
+    "id": 9,
+    "type": "data-chain",
+    "success_rate": 0.6666666666666666,
+    "avg_retries": 1.3333333333333333,
+    "avg_duration": 92.3
+  },
+  {
+    "id": 10,
+    "type": "multi-file",
+    "success_rate": 1.0,
+    "avg_retries": 0.6666666666666666,
+    "avg_duration": 86.2
+  },
+  {
+    "id": 11,
+    "type": "edit-chain",
+    "success_rate": 1.0,
+    "avg_retries": 0.3333333333333333,
+    "avg_duration": 51.9
+  },
+  {
+    "id": 12,
+    "type": "cross-server",
+    "success_rate": 1.0,
+    "avg_retries": 1.0,
+    "avg_duration": 57.8
+  },
+  {
+    "id": 13,
+    "type": "format-chain",
+    "success_rate": 1.0,
+    "avg_retries": 0.3333333333333333,
+    "avg_duration": 69.3
+  },
+  {
+    "id": 14,
+    "type": "condition",
+    "success_rate": 1.0,
+    "avg_retries": 0.3333333333333333,
+    "avg_duration": 32.3
+  },
+  {
+    "id": 15,
+    "type": "mega",
+    "success_rate": 0.6666666666666666,
+    "avg_retries": 1.3333333333333333,
+    "avg_duration": 136.8
+  }
+]

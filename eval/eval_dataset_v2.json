@@ -1,0 +1,87 @@
+[
+  {"id": 1, "type": "multi-constraint",
+   "task": "创建 report.docx：标题为'数据报告'；然后读取 data.xlsx 的 Sheet1，把每个产品写成一节——产品名作为小标题，下面一行写它的销量",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "report.docx", "file_exists": true,
+             "contains": ["数据报告", "苹果", "香蕉", "120", "85"]}},
+
+  {"id": 2, "type": "data-chain",
+   "task": "读取 data.xlsx 的 Sheet1，计算销量总和与平均值，创建 out.docx 写入三行：第一行'总和：205'的格式写总和，第二行写平均值，第三行以「结论：」开头写一句评价",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["205", "102.5", "结论："]}},
+
+  {"id": 3, "type": "condition",
+   "task": "读取 data.xlsx 的 Sheet1 计算总销量，如果总和大于 150，创建 out.docx 写入'销量达标'和总销量数值；否则写入'销量未达标'",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["销量达标", "205"], "not_contains": ["未达标"]}},
+
+  {"id": 4, "type": "data-chain",
+   "task": "读取 data.xlsx 的 Sheet1，把产品按销量从高到低排序，创建 out.docx 逐行写入，每行格式为'产品名：销量'",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["苹果", "香蕉", "120", "85"]}},
+
+  {"id": 5, "type": "cross-server",
+   "task": "查询张三和李四的邮箱，创建 contacts.xlsx：A1 写'姓名'、B1 写'邮箱'，第 2、3 行分别写入张三和李四的姓名与邮箱",
+   "check": {"file": "contacts.xlsx", "file_exists": true,
+             "contains": ["张三", "李四", "zhang@corp.com", "li@corp.com"]}},
+
+  {"id": 6, "type": "edit-chain",
+   "task": "创建 out.docx 写入'初稿：本月完成3个项目'；然后把'3个项目'修改为'5个项目'；最后把'初稿'二字改为'终稿'",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["终稿", "5个项目"], "not_contains": ["初稿", "3个项目"]}},
+
+  {"id": 7, "type": "multi-constraint",
+   "task": "读取 data.xlsx 的 Sheet1，创建 out.docx，插入一个 4 行 2 列的表格：表头为'产品'和'销量'，中间两行填入两个产品的数据，最后一行写'合计'和总销量",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["产品", "销量", "苹果", "香蕉", "合计", "205"]}},
+
+  {"id": 8, "type": "multi-constraint",
+   "task": "创建 out.docx，标题'季度总结'，正文包含三个小节，小标题分别为'一、业绩回顾''二、问题分析''三、下月计划'，每节至少一句话，最后另起一段以「结论：」开头写一句总结",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["季度总结", "业绩回顾", "问题分析", "下月计划", "结论："]}},
+
+  {"id": 9, "type": "data-chain",
+   "task": "读取 data.xlsx 的 Sheet1，创建 result.xlsx：A 列产品名、B 列销量、C 列该产品销量占总和的百分比（四舍五入到整数，写法如'59%'），表头为'产品''销量''占比'",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "result.xlsx", "file_exists": true,
+             "contains": ["苹果", "香蕉", "59%", "41%"]}},
+
+  {"id": 10, "type": "multi-file",
+   "task": "读取 data.xlsx 的 Sheet1：创建 a.docx 写入苹果这一行产品的信息，创建 b.docx 写入香蕉这一行产品的信息，最后创建 summary.docx 写入产品总数和总销量",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "summary.docx", "file_exists": true,
+             "contains": ["205"], "extra_files": ["a.docx", "b.docx"]}},
+
+  {"id": 11, "type": "edit-chain",
+   "task": "创建 out.docx 写入三行：'苹果：100''香蕉：80''合计：180'；然后把苹果的销量改为 120、香蕉的改为 85、合计改为 205",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["120", "85", "205"],
+             "not_contains": ["100", "180"]}},
+
+  {"id": 12, "type": "cross-server",
+   "task": "读取 data.xlsx 的 Sheet1 找出销量最高的产品，再查询张三的邮箱，创建 out.docx 写入一行：'销量最高的产品是X（销量），后续跟进请联系张三（邮箱）'",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["苹果", "120", "zhang@corp.com"]}},
+
+  {"id": 13, "type": "format-chain",
+   "task": "创建 out.docx，依次写入三段话，主题分别是'计划''执行''复盘'，每段至少 30 字；然后给所有正文段落设置首行缩进；最后运行 validate 确保无错误",
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["计划", "执行", "复盘"], "min_text_len": 90}},
+
+  {"id": 14, "type": "condition",
+   "task": "读取 data.xlsx 的 Sheet1，如果香蕉的销量小于 100，创建 out.docx 写入'香蕉需要促销'并附一句促销建议；否则写入'香蕉销售良好'",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "out.docx", "file_exists": true,
+             "contains": ["香蕉需要促销"], "not_contains": ["销售良好"]}},
+
+  {"id": 15, "type": "mega",
+   "task": "创建 weekly.docx 写一份每周数据周报：标题'每周数据周报'；第一节'数据概览'——读取 data.xlsx，写入总销量、平均销量、销量最高的产品名；第二节'团队联系人'——查询并写入张三和李四的邮箱；最后另起一段以「结论：」开头写一句综合建议",
+   "inputs": ["data.xlsx"],
+   "check": {"file": "weekly.docx", "file_exists": true,
+             "contains": ["205", "102.5", "苹果", "zhang@corp.com", "li@corp.com", "结论："]}}
+]
