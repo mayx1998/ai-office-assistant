@@ -1,6 +1,7 @@
 import json, os, re, subprocess
 from graph_state import OfficeState
 from langchain_core.messages import ToolMessage, AIMessage
+from config import cfg
 
 
 def try_repair_args(raw: str):
@@ -127,7 +128,7 @@ def make_executor(llm, tools):
                         f"不要用 query 的坐标过滤语法。写单元格用 set <file> /Sheet1/A1 --prop value=内容。")
             return None
 
-        for i in range(10):                       # 步数上限放宽，多步任务需要
+        for i in range(cfg()["limits"]["max_steps"]):                       # 步数上限放宽，多步任务需要
             resp = llm_with_tools.invoke(messages)
             if getattr(resp, "invalid_tool_calls", None):
                 for itc in resp.invalid_tool_calls:

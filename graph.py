@@ -4,10 +4,11 @@ from nodes import make_planner, make_executor, make_reviewer, make_repairer
 from tools_adapter import load_mcp_tools
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
+from config import cfg
 import os
 
 llm = ChatOpenAI(
-    model="qwen-plus",
+    model=cfg()["llm"]["model"],
     max_tokens=4096,
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
