@@ -5,6 +5,7 @@ from tools_adapter import load_mcp_tools
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from config import cfg
+from tracing import init_trace_db, trace_node
 import os
 
 llm = ChatOpenAI(
@@ -14,13 +15,14 @@ llm = ChatOpenAI(
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
 
-mcp_clients, TOOLS = load_mcp_tools()          # ← 你 Day 2 的成果原样复用
+mcp_clients, TOOLS = load_mcp_tools()          # ←  Day 2 的成果原样复用
 
+init_trace_db()
 g = StateGraph(OfficeState)
-g.add_node("planner", make_planner(llm, [t.name for t in TOOLS]))
-g.add_node("executor", make_executor(llm, TOOLS))
-g.add_node("reviewer", make_reviewer(llm))
-g.add_node("repairer", make_repairer(llm))
+g.add_node("planner", trace_node("planner")(make_planner(llm, [t.name for t in TOOLS])))
+g.add_node("executor", trace_node("executor")(make_executor(llm, TOOLS)))
+g.add_node("reviewer", trace_node("reviewer")(make_reviewer(llm)))
+g.add_node("repairer", trace_node("repairer")(make_repairer(llm)))
 
 g.set_entry_point("planner")
 g.add_edge("planner", "executor")
@@ -50,11 +52,12 @@ if __name__ == "__main__":
     config = {"configurable": {"thread_id": "task-001"}}   # 存档槽位 ID
 
     # ── 第一段：跑到 executor 前自动暂停 ──
-    app_hitl.invoke({                      # ← app 改成 app_hitl
+    app_hitl.invoke({
         "task": "创建 report.docx，写一段 100 字的人工智能简介",
         "plan": [], "messages": [], "last_tool_error": "",
         "review_pass": False, "retry_count": 0,
         "human_approved": False, "report": "",
+        "thread_id": "task-001",  # ← 加这行
     }, config)
 
     # ── 此刻图已暂停。查看模型打算干什么 ──
@@ -63,9 +66,7 @@ if __name__ == "__main__":
     print("暂停在节点：", snapshot.next)
 
 
-    if __name__ == "__main__":
-        config = {"configurable": {"thread_id": "task-001"}}
-        app_hitl.invoke({...}, config)
+
 
 
     # ── 人工审批──

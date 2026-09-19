@@ -11,3 +11,4 @@ class OfficeState(TypedDict):
     human_approved: bool                         # HITL 审批结果
     report: str                                  # 最终交付说明
     review_feedback: str                         # reviewer 未通过时的诊断，喂给下一轮 executor
+    thread_id: str

@@ -23,7 +23,7 @@ print(f"本次日志保存到: {log_path}")
 
 INITIAL_STATE = {"task": "", "plan": [], "messages": [],
                  "last_tool_error": "", "review_pass": False,
-                 "retry_count": 0, "human_approved": True, "report": ""}
+                 "retry_count": 0, "human_approved": True, "report": "","thread_id": ""}
 
 # Baseline: Day 1 裸循环 + 手写工具
 def baseline(task):
@@ -32,12 +32,14 @@ def baseline(task):
 
 # Exp 2: LangGraph 状态机（无中断版）
 def exp2(task):
-    state = {**INITIAL_STATE, "task": task}
-    return app.invoke(state, config={"configurable": {"thread_id": f"eval-{time.time()}"}})
+    tid = f"eval-{time.time()}"
+    state = {**INITIAL_STATE, "task": task, "thread_id": tid}
+    return app.invoke(state, config={"configurable": {"thread_id": tid}})
 
 def exp3(task):
-    config = {"configurable": {"thread_id": f"eval-{time.time()}"}}
-    state = {**INITIAL_STATE, "task": task}
+    tid = f"eval-{time.time()}"
+    config = {"configurable": {"thread_id": tid}}
+    state = {**INITIAL_STATE, "task": task, "thread_id": tid}
     app_hitl.invoke(state, config)
     return app_hitl.invoke(None, config)
 
