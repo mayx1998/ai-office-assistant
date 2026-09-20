@@ -2,6 +2,20 @@ import json, os, re, subprocess
 from graph_state import OfficeState
 from langchain_core.messages import ToolMessage, AIMessage
 from config import cfg
+from openai import RateLimitError, APITimeoutError, APIConnectionError, InternalServerError
+
+
+def with_retry(runnable):
+    """给任意 Runnable 套上重试：只对临时性错误（429 限流 / 超时 / 断连 / 5xx），
+    指数退避 + 随机抖动。千万别把 400 类错误加进来——参数错了重试一万次还是错，纯烧额度。
+    注意 .with_retry() 返回的 RunnableRetry 没有 bind_tools，
+    所以 executor 要先 bind_tools 再对它套本函数。"""
+    return runnable.with_retry(
+        retry_if_exception_type=(RateLimitError, APITimeoutError,
+                                 APIConnectionError, InternalServerError),
+        stop_after_attempt=cfg()["limits"]["max_retries"],
+        wait_exponential_jitter=True,
+    )
 
 
 def try_repair_args(raw: str):
@@ -35,8 +49,12 @@ def extract_text(file_path: str) -> str:
                 for cell in row.cells:
                     parts.append(cell.text)
         return "\n".join(parts)
-    result = subprocess.run(["officecli", "view", file_path, "text"],
-                            capture_output=True, encoding="utf-8", errors="replace")
+    try:
+        result = subprocess.run(["officecli", "view", file_path, "text"],
+                                capture_output=True, encoding="utf-8", errors="replace",
+                                timeout=cfg()["limits"]["cli_timeout_s"])
+    except subprocess.TimeoutExpired:
+        return "Error: 命令执行超时已强杀"
     return result.stdout
 
 
@@ -83,7 +101,8 @@ def make_planner(llm, tool_names):
 # ── executor：执行当前步骤（复用 Day 1 的循环，缩小作用域）──
 def make_executor(llm, tools):
     tool_map = {t.name: t for t in tools}
-    llm_with_tools = llm.bind_tools(tools)
+    # 先 bind_tools 再套重试（顺序反了会报 RunnableRetry 没有 bind_tools）
+    llm_with_tools = with_retry(llm.bind_tools(tools))
 
     def executor(state: OfficeState) -> dict:
         plan_text = "\n".join(state["plan"]) if state["plan"] else state["task"]
@@ -102,6 +121,16 @@ def make_executor(llm, tools):
         # 第 4 刀：防死循环——跟踪"连续相同错误"
         last_error_sig = None
         same_error_count = 0
+
+        # 第 5 刀：单工具调用限额——防止对某个工具无限死调烧额度
+        tool_counts = {}
+
+        def check_limit(tool_name):
+            tool_counts[tool_name] = tool_counts.get(tool_name, 0) + 1
+            if tool_counts[tool_name] > cfg()["limits"]["per_tool_max_calls"]:
+                return (f"工具 {tool_name} 本轮调用次数已达上限，"
+                        f"请用已有信息收尾，不要再调用它。")
+            return None
 
         def note_result(tool_name, obs_text):
             """每次工具返回后调用。同一错误连续出现 >=2 次时，
@@ -138,7 +167,11 @@ def make_executor(llm, tools):
                     print(f"             args原文: {raw[:200]}")
                     fixed = try_repair_args(raw)
                     if fixed is not None and name in tool_map:
-                        print(f"             ✓ 闭合补全修复成功，照常执行")
+                        print(f"             [OK] 闭合补全修复成功，照常执行")
+                        limit_msg = check_limit(name)              # ← 第 5 刀
+                        if limit_msg:
+                            messages.append(("user", limit_msg))
+                            continue
                         try:
                             obs = tool_map[name].invoke(fixed)
                         except Exception as e:
@@ -163,6 +196,10 @@ def make_executor(llm, tools):
                 break
             for tc in resp.tool_calls:
                 print(f"  [executor] 调用 {tc['name']}: {str(tc['args'])[:120]}")  # ← 日志
+                limit_msg = check_limit(tc["name"])                # ← 第 5 刀
+                if limit_msg:
+                    messages.append(("user", limit_msg))
+                    continue
                 try:
                     obs = tool_map[tc["name"]].invoke(tc["args"])
                 except Exception as e:
@@ -213,7 +250,7 @@ def make_reviewer(llm):
                 except Exception as e:
                     evidence += f"\n---\n产物文件 {name} 读取失败：{e}"
             else:
-                evidence += f"\n---\n⚠️ 任务要求产物 {name}，但该文件在预期位置不存在（可能写错了目录）"
+                evidence += f"\n---\n[缺失] 任务要求产物 {name}，但该文件在预期位置不存在（可能写错了目录）"
 
         # 第 3 层：LLM 对照 rubric 判定【第 2 刀：输出结构化 JSON，NO 必须带诊断】
         print(f"[reviewer] 提交 LLM 判定的证据:\n{evidence[:600]}")

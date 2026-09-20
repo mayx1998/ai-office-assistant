@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, END
 from graph_state import OfficeState
-from nodes import make_planner, make_executor, make_reviewer, make_repairer
+from nodes import make_planner, make_executor, make_reviewer, make_repairer, with_retry
 from tools_adapter import load_mcp_tools
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
@@ -8,21 +8,26 @@ from config import cfg
 from tracing import init_trace_db, trace_node
 import os
 
+_API_KEY_ENV = cfg()["llm"]["api_key_env"]
+if not os.environ.get(_API_KEY_ENV):
+    raise RuntimeError(
+        f"缺少环境变量 {_API_KEY_ENV}——请在系统环境变量或 .env 中设置后再启动"
+        "（Windows 设完环境变量要重开终端才生效）")
+
 llm = ChatOpenAI(
     model=cfg()["llm"]["model"],
-    max_tokens=4096,
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    base_url=cfg()["llm"]["base_url"],
+    api_key=os.environ[_API_KEY_ENV],
 )
 
 mcp_clients, TOOLS = load_mcp_tools()          # ←  Day 2 的成果原样复用
 
 init_trace_db()
 g = StateGraph(OfficeState)
-g.add_node("planner", trace_node("planner")(make_planner(llm, [t.name for t in TOOLS])))
+g.add_node("planner", trace_node("planner")(make_planner(with_retry(llm), [t.name for t in TOOLS])))
 g.add_node("executor", trace_node("executor")(make_executor(llm, TOOLS)))
-g.add_node("reviewer", trace_node("reviewer")(make_reviewer(llm)))
-g.add_node("repairer", trace_node("repairer")(make_repairer(llm)))
+g.add_node("reviewer", trace_node("reviewer")(make_reviewer(with_retry(llm))))
+g.add_node("repairer", trace_node("repairer")(make_repairer(with_retry(llm))))
 
 g.set_entry_point("planner")
 g.add_edge("planner", "executor")
