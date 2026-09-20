@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 办公助手 · 批量生成控制台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #0f1420; color: #dbe2f0; min-height: 100vh; padding: 32px 16px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  header h1 { font-size: 22px; font-weight: 600; }
+  header p { color: #7a869e; font-size: 13px; margin-top: 4px; }
+  .card {
+    background: #171e2e; border: 1px solid #26314a; border-radius: 12px; padding: 20px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 14px; color: #9fb4d8; font-weight: 600; }
+  label { display: block; font-size: 13px; color: #8b98b3; margin: 12px 0 6px; }
+  input, textarea {
+    width: 100%; background: #0f1626; border: 1px solid #2b3852; color: #dbe2f0;
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #4f7cff; }
+  textarea { resize: vertical; min-height: 64px; }
+  button {
+    margin-top: 16px; background: #4f7cff; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-size: 14px; cursor: pointer; transition: background .15s;
+  }
+  button:hover { background: #3d68e0; }
+  button:disabled { background: #33405e; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  .badge {
+    display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .badge.queued   { background: #3a3f2a; color: #d7e36b; }
+  .badge.running  { background: #1e3350; color: #6ea8ff; }
+  .badge.done     { background: #1c3a2a; color: #5fd68b; }
+  .badge.unknown  { background: #3a2a2a; color: #e36b6b; }
+  .bar-track { background: #0f1626; border-radius: 999px; height: 10px; margin-top: 14px; overflow: hidden; }
+  .bar-fill {
+    background: linear-gradient(90deg, #4f7cff, #6ea8ff); height: 100%; width: 0%;
+    border-radius: 999px; transition: width .4s ease;
+  }
+  .stats { display: flex; gap: 24px; margin-top: 12px; font-size: 13px; color: #8b98b3; }
+  .stats b { color: #dbe2f0; font-size: 16px; margin-right: 4px; }
+  .err-list { margin-top: 12px; font-size: 13px; color: #e36b6b; white-space: pre-wrap; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #222c44; }
+  th { color: #7a869e; font-weight: 600; }
+  td { color: #c6d0e2; }
+  .hint { font-size: 12px; color: #5b6883; margin-top: 8px; }
+  .empty { color: #5b6883; font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🤖 AI 办公助手 · 批量生成控制台</h1>
+    <p>MCP 工具链 + LangGraph 状态机 &nbsp;|&nbsp; <a href="/docs" style="color:#4f7cff">API 文档 /docs</a></p>
+  </header>
+
+  <!-- 提交任务 -->
+  <div class="card">
+    <h2>① 提交批量任务</h2>
+    <label>员工名单（xlsx 路径）</label>
+    <input id="xlsx" value="employees.xlsx">
+    <label>任务模板（用 {name} 占位）</label>
+    <textarea id="tpl">为{name}生成一份劳动合同，保存到 outputs/contract_{name}.docx</textarea>
+    <button id="btnSubmit" onclick="submitBatch()">提交任务</button>
+    <div class="hint" id="submitHint"></div>
+  </div>
+
+  <!-- 进度 -->
+  <div class="card" id="progCard" style="display:none">
+    <h2>② 任务进度</h2>
+    <div>任务号：<b id="taskId"></b> &nbsp; <span class="badge unknown" id="statusBadge">queued</span></div>
+    <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+    <div class="stats">
+      <span><b id="doneN">0</b>/ <span id="totalN">0</span> 完成</span>
+      <span><b id="errN">0</b> 失败</span>
+    </div>
+    <div class="err-list" id="errors"></div>
+  </div>
+
+  <!-- trace 查询 -->
+  <div class="card">
+    <h2>③ 执行时间线查询（trace）</h2>
+    <div class="row">
+      <div>
+        <label>thread_id（格式：{task_id}-{姓名}）</label>
+        <input id="tid" placeholder="例如 2973ab83-张三">
+      </div>
+      <button style="margin-top:0; flex:none" onclick="queryTrace()">查询</button>
+    </div>
+    <div id="traceResult"></div>
+  </div>
+
+</div>
+
+<script>
+let pollTimer = null;
+
+async function submitBatch() {
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  document.getElementById('submitHint').textContent = '提交中…';
+  try {
+    const r = await fetch('/batch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        xlsx_path: document.getElementById('xlsx').value.trim(),
+        task_template: document.getElementById('tpl').value.trim()
+      })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || ('HTTP ' + r.status));
+    }
+    const data = await r.json();
+    document.getElementById('submitHint').textContent = '已受理，任务号 ' + data.task_id;
+    startPolling(data.task_id);
+  } catch (e) {
+    document.getElementById('submitHint').textContent = '提交失败：' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function startPolling(taskId) {
+  clearInterval(pollTimer);
+  document.getElementById('progCard').style.display = 'block';
+  document.getElementById('taskId').textContent = taskId;
+  document.getElementById('tid').value = taskId + '-张三';   // 预填 trace 查询
+  pollOnce(taskId);
+  pollTimer = setInterval(() => pollOnce(taskId), 2000);
+}
+
+async function pollOnce(taskId) {
+  try {
+    const r = await fetch('/tasks/' + taskId);
+    const d = await r.json();
+    const badge = document.getElementById('statusBadge');
+    badge.textContent = d.status || 'unknown';
+    badge.className = 'badge ' + (d.status || 'unknown');
+    const total = d.total || 0, done = d.done || 0;
+    document.getElementById('totalN').textContent = total;
+    document.getElementById('doneN').textContent = done;
+    document.getElementById('bar').style.width = total ? (done / total * 100) + '%' : '0%';
+    const errs = d.errors || [];
+    document.getElementById('errN').textContent = errs.length;
+    document.getElementById('errors').textContent = errs.join('\n');
+    if (d.status === 'done') clearInterval(pollTimer);
+  } catch (e) { /* 轮询容错：下次再问 */ }
+}
+
+async function queryTrace() {
+  const tid = document.getElementById('tid').value.trim();
+  const box = document.getElementById('traceResult');
+  if (!tid) { box.innerHTML = '<div class="empty">请输入 thread_id</div>'; return; }
+  box.innerHTML = '<div class="empty">查询中…</div>';
+  try {
+    const r = await fetch('/traces/' + encodeURIComponent(tid));
+    const rows = await r.json();
+    if (!rows.length) { box.innerHTML = '<div class="empty">该 thread_id 没有 trace 记录</div>'; return; }
+    let html = '<table><tr><th>节点</th><th>耗时</th><th>时间</th><th>明细</th></tr>';
+    let total = 0;
+    for (const row of rows) {
+      total += row.ms;
+      html += `<tr><td>${row.node}</td><td>${row.ms} ms</td><td>${row.at}</td><td>${row.detail || ''}</td></tr>`;
+    }
+    html += `</table><div class="hint">共 ${rows.length} 个节点，总耗时 ${(total/1000).toFixed(1)}s</div>`;
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = '<div class="empty">查询失败：' + e.message + '</div>';
+  }
+}
+</script>
+</body>
+</html>
