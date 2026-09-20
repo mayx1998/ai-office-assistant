@@ -22,9 +22,10 @@ limits:
   office_concurrency: 1   # Office 工具必须串行（真实 Office 是单实例）
 
 paths:
-  allowed_dirs:           # 第 4 步路径白名单用
-    - D:\dev\基于MCP的AI办公助手\eval\sandbox
-    - D:\dev\基于MCP的AI办公助手\outputs
+  allowed_dirs:           # 路径白名单：相对条目按【项目根目录】解析，clone 到任何位置都能跑
+    - .                    # 项目根目录：裸文件名（如 report.docx）落在这里
+    - eval/sandbox         # 评测系统的隔离工作区
+    - outputs              # 批量服务的产物目录
 
 trace:
   db: traces.db
