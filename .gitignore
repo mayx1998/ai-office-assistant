@@ -1,9 +1,13 @@
 .venv/
+.idea/
+.mypy_cache/
 mcp/
 __pycache__/
 *.pyc
 .env
 traces.db
+traces.db-shm
+traces.db-wal
 eval/sandbox/
 eval/logs/
 outputs/
