@@ -1,0 +1,18 @@
+# 编排说明：
+# - 进容器：Agent 服务（LangGraph + FastAPI + trace）、contact server（纯 Python，
+#   在容器内当子进程跑 stdio，没问题）
+# - 不进容器：officecli——它驱动真实 Office，Linux 容器装不了 Office。
+#   这不是偷懒，是"工具的运行时依赖决定部署拓扑"。容器里 office server 启动失败
+#   会自动跳过（见 tools_adapter.py），演示 contact 查询、/batch 进度、/traces 时间线即可。
+# 长期方案：MCP 从 stdio 换成 streamable HTTP transport，office server 留在 Windows
+# 宿主机，容器里的 Agent 走网络调用它——"工具即插即用"的完整形态。
+services:
+  agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+    volumes:
+      - ./outputs:/app/outputs
+      - ./traces.db:/app/traces.db
